@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="JpaBuddyIdeaProjectConfig" migrateIndexesAndConstraints="true" reUseTableSchema="true">
+    <option name="migrateIndexesAndConstraints" value="true" />
+    <option name="reLastEntityCreationPackage" value="src/main/java/org/entities" />
+    <option name="reverseEngineeringLastDbConnectionId" value="89817d8a-bf03-495a-af51-f4ff165b07a1__postgres_vtschool" />
+  </component>
+  <component name="PersistenceUnitSettings">
+    <persistence-units>
+      <persistence-unit moduleName="Activity" name="hibernate.cfg.xml" framework="JPA" ormUnit="Activity:hibernate.cfg.xml" defaultDataSourceId="89817d8a-bf03-495a-af51-f4ff165b07a1" />
+    </persistence-units>
+  </component>
+</project>

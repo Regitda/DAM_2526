@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        <!-- Database connection settings -->
+        <property name="connection.url">jdbc:postgresql://localhost:5432/postgres</property>
+        <property name="connection.driver_class">org.postgresql.Driver</property>
+        <property name="connection.username">postgres</property>
+        <property name="connection.password">damir</property>
+
+        <!-- Schema management -->
+        <property name="hibernate.hbm2ddl.auto">validate</property>
+
+
+        <!-- Show SQL for debugging -->
+        <property name="hibernate.show_sql">false</property>
+        <property name="hibernate.format_sql">false</property>
+        <property name="hibernate.highlight_sql">false</property>
+
+        <mapping class="org.entities.Cours"/>
+        <mapping class="org.entities.Enrollment"/>
+        <mapping class="org.entities.Score"/>
+        <mapping class="org.entities.Student"/>
+        <mapping class="org.entities.SubjectCours"/>
+        <mapping class="org.entities.Subject"/>
+
+
+        <!-- Entity classes -->
+
+    </session-factory>
+</hibernate-configuration>
