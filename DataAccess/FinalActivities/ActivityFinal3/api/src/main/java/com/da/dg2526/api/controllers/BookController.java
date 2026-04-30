@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.apache.juli.logging.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -31,17 +32,25 @@ public class BookController {
     public ResponseEntity<?> addBook(@RequestBody @Valid BookNewInputDTO dto) {
         LoggerUtil.logInfo("Adding book");
         try {
-            bookService.addNewBook(dto);
+            var response = bookService.addNewBook(dto);
+            return ResponseEntity.ok().body(response);
+
         } catch (ServiceValidationException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
-        return  ResponseEntity.ok().body(dto);
+
     }
 
     @PostMapping("{isbn}/lend")
     public ResponseEntity<?> lendBook(@PathVariable String isbn, @RequestParam @NotBlank @Size(max = 8) String userId) {
 
-
+        LoggerUtil.logInfo("Lending book");
+        try {
+            var response = bookService.lendBook(isbn, userId);
+            return ResponseEntity.ok().body(response);
+        } catch (ServiceValidationException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
 
 
     }
