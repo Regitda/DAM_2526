@@ -4,13 +4,19 @@ import com.da.dg2526.api.models.entities.BookEntity;
 import com.da.dg2526.api.models.entities.LendingEntity;
 import com.da.dg2526.api.models.entities.UserEntity;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
+@Repository
 public interface ILendingEntityDAO extends CrudRepository<LendingEntity, Integer> {
 
-    Integer countAllByBookEntity(BookEntity book);
+    Integer countAllByBookEntityAndReturningdateIsNull(BookEntity book);
 
-    LendingEntity findFirstByBookEntityAndBorrowerAndReturningdateIsNullOrderByIdDesc(BookEntity bookEntity, UserEntity borrower);
+    Integer countAllByBorrowerAndReturningdateIsNull(UserEntity user);
+
+    Optional<LendingEntity> findFirstByBookEntityAndBorrowerAndReturningdateIsNullOrderByIdDesc(BookEntity bookEntity, UserEntity borrower);
+
 
 }

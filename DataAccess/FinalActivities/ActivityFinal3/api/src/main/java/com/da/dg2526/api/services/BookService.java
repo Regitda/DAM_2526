@@ -57,18 +57,20 @@ public class BookService {
         var book = results.book;
 
         // Test if lending even exists
-        var lending = lendingEntityDAO.findFirstByBookEntityAndBorrowerAndReturningdateIsNullOrderByIdDesc(book, user);
-        if(lending == null) {
-            throw new ServiceValidationException("Lending not found");
-        }
+        var lending = lendingEntityDAO.findFirstByBookEntityAndBorrowerAndReturningdateIsNullOrderByIdDesc(book, user).orElseThrow(() -> new ServiceValidationException("Lending not found"));
 
         // Late return, return will be processed but all books returned late will cause fine to reset.
-        var fined = lending.getLendingdate().plusDays(7).isAfter(LocalDate.now());
-        LoggerUtil.logInfo("Processing return of book: "+isbn+", was user fined: "+fined);
+        var fined = lending.getLendingdate().plusDays(7).isBefore(LocalDate.now());
+        LoggerUtil.logInfo("Processing return of book: " + isbn + ", was user fined: " + fined);
+
+        // Setting fined date.
+        if (fined) {
+            user.setFined(LocalDate.now());
+        }
 
         // Marks lending as finished.
         lending.setReturningdate(LocalDate.now());
-        return new BookReturnResponseDTO("Success","Book "+book.getTitle()+" was returned.",fined);
+        return new BookReturnResponseDTO("Success", "Book " + book.getTitle() + " was returned.", fined);
     }
 
 
@@ -87,11 +89,10 @@ public class BookService {
         if (userEntityFinedDate != null) {
             var userFinedResult = isUserFined(userEntityFinedDate);
             if (userFinedResult.fined) {
-                LoggerUtil.logWarning("User is fined, canceling lending.");
+                LoggerUtil.logWarning("User is fined, canceling reservation.");
                 return new BookReserveResponseDTO("Fail", "User is currently fined, end of fine: " + userFinedResult.date, null);
             }
         }
-
 
 
         var email = user.getEmail();
@@ -101,12 +102,22 @@ public class BookService {
             throw new ServiceValidationException("Email or phone is obligatory for reservation");
         }
 
+        //If book has copies reservation is not allowed
+        var lent = lendingEntityDAO.countAllByBookEntityAndReturningdateIsNull(book);
+        var reserved = reservationEntityDAO.countAllByBookEntityAndLendingEntityIsNull(book);
+
+        // Without reserve check you get stuck.
+        if (lent >= book.getCopies() && reserved == 0) {
+            throw new ServiceValidationException("Book has free copies to lend");
+        }
+
+
         // From forum comment it seems user can reserve as many books as they want...
         var newReservation = toReservationEntity(book, user);
         reservationEntityDAO.save(newReservation);
 
         var reservations = reservationEntityDAO.countAllByBookEntityAndLendingEntityIsNull(book);
-        return new BookReserveResponseDTO("Succcess", "", toReservationResultDTO(userId,reservations));
+        return new BookReserveResponseDTO("Succcess", "", toReservationResultDTO(userId, reservations));
 
     }
 
@@ -129,16 +140,23 @@ public class BookService {
         }
 
         // Check if user is borrowing more than 3 books.
-        var lendings = reservationEntityDAO.countAllByBorrower(user);
+        var lendings = lendingEntityDAO.countAllByBorrowerAndReturningdateIsNull(user);
         if (lendings > 3) {
             return new BookLendingResult("Fail", "User currently is borrowing 3 books. Limit is 3", null, false);
         }
 
         //Check if there are any left books.
-        var currenLendings = lendingEntityDAO.countAllByBookEntity(book);
+        var currenLendings = lendingEntityDAO.countAllByBookEntityAndReturningdateIsNull(book);
         var bookCopies = book.getCopies();
         if (currenLendings >= bookCopies)
             return new BookLendingResult("Fail", "All books have been lent: Book has " + bookCopies + "copies, out of which are lent: " + currenLendings, null, true);
+
+        // Check if book is currently reserved and if the request user is the oldest reserver
+        var oldestReserve = reservationEntityDAO.findFirstByBookEntityAndLendingEntityIsNullOrderByDateAsc(book);
+        if (oldestReserve.isPresent()) {
+            if (oldestReserve.get().getBorrower() != user)
+                return new BookLendingResult("Fail", "The book is currently reserved by a different user", null, true);
+        }
 
         //Save new lending
         var newLending = toLendingEntity(book, user);
@@ -174,7 +192,6 @@ public class BookService {
     }
 
 
-
     //** Mappers ** //
     private ReservationEntity toReservationEntity(BookEntity book, UserEntity user) {
         var reservationEntity = new ReservationEntity();
@@ -186,7 +203,7 @@ public class BookService {
     }
 
     private ReserveResultDTO toReservationResultDTO(String borrower, Integer reservationsOnThatBook) {
-        return new ReserveResultDTO(LocalDate.now(),borrower,reservationsOnThatBook);
+        return new ReserveResultDTO(LocalDate.now(), borrower, reservationsOnThatBook);
     }
 
     private LendingEntity toLendingEntity(BookEntity book, UserEntity user) {

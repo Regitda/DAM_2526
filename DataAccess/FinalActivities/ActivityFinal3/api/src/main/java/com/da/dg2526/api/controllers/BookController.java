@@ -42,7 +42,7 @@ public class BookController {
     }
 
     @PostMapping("{isbn}/lend")
-    public ResponseEntity<?> lendBook(@PathVariable @NotBlank @Size(max=13) String isbn, @RequestParam @NotBlank @Size(max = 8) String userId) {
+    public ResponseEntity<?> lendBook(@PathVariable @NotBlank @Size(max = 13) String isbn, @RequestParam @NotBlank @Size(max = 8) String userId) {
 
         LoggerUtil.logInfo("Lending book");
         try {
@@ -55,13 +55,26 @@ public class BookController {
 
     }
 
+    @PostMapping("{isbn}/reserve")
+    public ResponseEntity<?> reserveBook(@PathVariable @NotBlank @Size(max = 13) String isbn, @RequestParam @NotBlank @Size(max = 8) String userId) {
+
+        LoggerUtil.logInfo("Reserving book");
+
+        try {
+            var response = bookService.reserveBook(isbn, userId);
+            return ResponseEntity.ok().body(response);
+        } catch (ServiceValidationException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PostMapping("{isbn}/return")
-    public ResponseEntity<?> returnBook(@PathVariable @NotBlank @Size(max=13) String isbn, @RequestParam @NotBlank @Size(max = 8) String userId) {
+    public ResponseEntity<?> returnBook(@PathVariable @NotBlank @Size(max = 13) String isbn, @RequestParam @NotBlank @Size(max = 8) String userId) {
         LoggerUtil.logInfo("Returning book");
         try {
-            var response = bookService.returnBook(isbn,userId);
+            var response = bookService.returnBook(isbn, userId);
             return ResponseEntity.ok().body(response);
-        } catch (ServiceValidationException e){
+        } catch (ServiceValidationException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }

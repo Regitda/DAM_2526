@@ -4,13 +4,16 @@ import com.da.dg2526.api.models.entities.BookEntity;
 import com.da.dg2526.api.models.entities.ReservationEntity;
 import com.da.dg2526.api.models.entities.UserEntity;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
+@Repository
 public interface IReservationEntityDAO extends CrudRepository<ReservationEntity, Integer> {
 
-
-    Integer countAllByBorrower(UserEntity user);
-
     Integer countAllByBookEntityAndLendingEntityIsNull(BookEntity book);
+
+    Optional<ReservationEntity> findFirstByBookEntityAndLendingEntityIsNullOrderByDateAsc(BookEntity book);
 
 }
 
