@@ -5,5 +5,4 @@ import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface IBookEntityDAO extends CrudRepository<BookEntity,String> {
-}
+public interface IBookEntityDAO extends CrudRepository<BookEntity,String> {}
