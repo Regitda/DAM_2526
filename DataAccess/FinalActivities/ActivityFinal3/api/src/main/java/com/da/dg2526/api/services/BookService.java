@@ -6,12 +6,14 @@ import com.da.dg2526.api.models.dto.bookEntity.*;
 import com.da.dg2526.api.models.dto.lendingEntity.LendingReturnDTO;
 import com.da.dg2526.api.models.dto.reserveEntity.ReserveResultDTO;
 import com.da.dg2526.api.models.entities.*;
+import com.da.dg2526.api.models.enums.Status;
 import com.da.dg2526.api.utils.LoggerUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Objects;
 
 @Service
 public class BookService {
@@ -36,12 +38,12 @@ public class BookService {
     @Transactional
     public BookNewInputResultDTO addNewBook(BookNewInputDTO book) {
         // Duplicants test
-        if (bookEntityDAO.existsById(book.getIsbn())) {
+        if (bookEntityDAO.existsById(book.isbn())) {
             throw new ServiceValidationException("Book already exists");
         }
 
         // Category test
-        var categoryEntity = categoryEntityDAO.findById(book.getCategory()).orElseThrow(() -> new ServiceValidationException("Category does not exist: " + book.getCategory()));
+        var categoryEntity = categoryEntityDAO.findById(book.category()).orElseThrow(() -> new ServiceValidationException("Category doesn't exist: " + book.category()));
         var newBookEntity = toBookEntity(book, categoryEntity);
 
 
@@ -60,17 +62,18 @@ public class BookService {
         var lending = lendingEntityDAO.findFirstByBookEntityAndBorrowerAndReturningdateIsNullOrderByIdDesc(book, user).orElseThrow(() -> new ServiceValidationException("Lending not found"));
 
         // Late return, return will be processed but all books returned late will cause fine to reset.
-        var fined = lending.getLendingdate().plusDays(7).isBefore(LocalDate.now());
+        var dateNow = LocalDate.now();
+        var fined = lending.getLendingdate().plusDays(7).isBefore(dateNow);
         LoggerUtil.logInfo("Processing return of book: " + isbn + ", was user fined: " + fined);
 
-        // Setting fined date.
+        // Setting fined endFineDate.
         if (fined) {
-            user.setFined(LocalDate.now());
+            user.setFined(dateNow);
         }
 
         // Marks lending as finished.
-        lending.setReturningdate(LocalDate.now());
-        return new BookReturnResponseDTO("Success", "Book " + book.getTitle() + " was returned.", fined);
+        lending.setReturningdate(dateNow);
+        return new BookReturnResponseDTO(Status.SUCCESS, "Book " + book.getTitle() + " was returned.", fined);
     }
 
 
@@ -88,9 +91,9 @@ public class BookService {
         var userEntityFinedDate = user.getFined();
         if (userEntityFinedDate != null) {
             var userFinedResult = isUserFined(userEntityFinedDate);
-            if (userFinedResult.fined) {
-                LoggerUtil.logWarning("User is fined, canceling reservation.");
-                return new BookReserveResponseDTO("Fail", "User is currently fined, end of fine: " + userFinedResult.date, null);
+            if (userFinedResult.isFined) {
+                LoggerUtil.logWarning("User is Fined, canceling reservation.");
+                return new BookReserveResponseDTO(Status.FAILURE, "User is currently fined, end of fine: " + userFinedResult.endFineDate, null);
             }
         }
 
@@ -102,28 +105,26 @@ public class BookService {
             throw new ServiceValidationException("Email or phone is obligatory for reservation");
         }
 
-        //If book has copies reservation is not allowed
+        //If book has copies and is unreserved then reservation is not allowed
         var lent = lendingEntityDAO.countAllByBookEntityAndReturningdateIsNull(book);
         var reserved = reservationEntityDAO.countAllByBookEntityAndLendingEntityIsNull(book);
 
         // Without reserve check you get stuck.
-        if (lent >= book.getCopies() && reserved == 0) {
+        if (lent < book.getCopies() && reserved == 0) {
             throw new ServiceValidationException("Book has free copies to lend");
         }
-
 
         // From forum comment it seems user can reserve as many books as they want...
         var newReservation = toReservationEntity(book, user);
         reservationEntityDAO.save(newReservation);
 
-        var reservations = reservationEntityDAO.countAllByBookEntityAndLendingEntityIsNull(book);
-        return new BookReserveResponseDTO("Succcess", "", toReservationResultDTO(userId, reservations));
+        return new BookReserveResponseDTO(Status.SUCCESS, "", toReservationResultDTO(userId, reserved+1));
 
     }
 
     // **Book lending**
     @Transactional
-    public BookLendingResult lendBook(String isbn, String userId) {
+    public BookLendingResponseDTO lendBook(String isbn, String userId) {
 
         var results = checkBookAndUserExists(isbn, userId);
         var user = results.user;
@@ -133,37 +134,37 @@ public class BookService {
         var userEntityFinedDate = user.getFined();
         if (userEntityFinedDate != null) {
             var userFinedResult = isUserFined(userEntityFinedDate);
-            if (userFinedResult.fined) {
+            if (userFinedResult.isFined) {
                 LoggerUtil.logWarning("User is fined, canceling lending.");
-                return new BookLendingResult("Fail", "User is currently fined, end of fine: " + userFinedResult.date, null, false);
+                return new BookLendingResponseDTO(Status.FAILURE, "User is currently Fined, end of fine: " + userFinedResult.endFineDate, null, false);
             }
         }
 
         // Check if user is borrowing more than 3 books.
         var lendings = lendingEntityDAO.countAllByBorrowerAndReturningdateIsNull(user);
-        if (lendings > 3) {
-            return new BookLendingResult("Fail", "User currently is borrowing 3 books. Limit is 3", null, false);
+        if (lendings >= 3) {
+            return new BookLendingResponseDTO(Status.FAILURE, "User currently is borrowing 3 books. Limit is 3", null, false);
         }
 
         //Check if there are any left books.
         var currenLendings = lendingEntityDAO.countAllByBookEntityAndReturningdateIsNull(book);
         var bookCopies = book.getCopies();
         if (currenLendings >= bookCopies)
-            return new BookLendingResult("Fail", "All books have been lent: Book has " + bookCopies + "copies, out of which are lent: " + currenLendings, null, true);
+            return new BookLendingResponseDTO(Status.FAILURE, "All books have been lent: Book has " + bookCopies + "copies, out of which are lent: " + currenLendings, null, true);
 
         // Check if book is currently reserved and if the request user is the oldest reserver
         var oldestReserve = reservationEntityDAO.findFirstByBookEntityAndLendingEntityIsNullOrderByDateAsc(book);
         if (oldestReserve.isPresent()) {
-            if (oldestReserve.get().getBorrower() != user)
-                return new BookLendingResult("Fail", "The book is currently reserved by a different user", null, true);
+            if (!Objects.equals(oldestReserve.get().getBorrower().getCode(), user.getCode()))
+                return new BookLendingResponseDTO(Status.FAILURE, "The book is currently reserved by a different user", null, true);
         }
 
         //Save new lending
         var newLending = toLendingEntity(book, user);
         lendingEntityDAO.save(newLending);
 
-        var reserves = reservationEntityDAO.countAllByBookEntityAndLendingEntityIsNull(book);
-        return new BookLendingResult("Success", "", toLendingResultDTO(newLending, userId), false);
+        // var reserves = reservationEntityDAO.countAllByBookEntityAndLendingEntityIsNull(book);
+        return new BookLendingResponseDTO(Status.SUCCESS, "", toLendingResultDTO(newLending, userId), false);
     }
 
 
@@ -181,8 +182,8 @@ public class BookService {
     }
 
 
-    // Checks if user was fined and returns possible fine end date.
-    private record UserFinedStatus(boolean fined, LocalDate date) {
+    // Checks if user was fined and returns possible fine end endFineDate.
+    private record UserFinedStatus(boolean isFined, LocalDate endFineDate) {
     }
 
     private UserFinedStatus isUserFined(LocalDate finedDate) {
@@ -214,18 +215,18 @@ public class BookService {
         return lendingEntity;
     }
 
-    private LendingReturnDTO toLendingResultDTO(LendingEntity lendingEntity, String borrower) {
-        return new LendingReturnDTO(lendingEntity.getLendingdate(), lendingEntity.getReturningdate(), borrower);
+    private LendingReturnDTO toLendingResultDTO(LendingEntity lendingEntity, String borrowerId) {
+        return new LendingReturnDTO(lendingEntity.getLendingdate(), lendingEntity.getReturningdate(), borrowerId, lendingEntity.getBook().getTitle());
     }
 
 
     private BookEntity toBookEntity(BookNewInputDTO book, CategoryEntity category) {
         BookEntity bookEntity = new BookEntity();
-        bookEntity.setIsbn(book.getIsbn());
-        bookEntity.setTitle(book.getTitle());
-        bookEntity.setCopies(book.getCopies());
-        bookEntity.setOutline(book.getOutline());
-        bookEntity.setPublisher(book.getPublisher());
+        bookEntity.setIsbn(book.isbn());
+        bookEntity.setTitle(book.title());
+        bookEntity.setCopies(book.copies());
+        bookEntity.setOutline(book.outline());
+        bookEntity.setPublisher(book.publisher());
         bookEntity.setCategory(category);
         return bookEntity;
     }

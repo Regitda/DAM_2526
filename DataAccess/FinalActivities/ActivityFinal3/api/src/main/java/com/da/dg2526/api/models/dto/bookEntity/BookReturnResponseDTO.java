@@ -1,4 +1,6 @@
 package com.da.dg2526.api.models.dto.bookEntity;
 
-public record BookReturnResponseDTO(String isbn, String message, Boolean lateReturn) {
+import com.da.dg2526.api.models.enums.Status;
+
+public record BookReturnResponseDTO(Status status, String message, Boolean lateReturn) {
 }
