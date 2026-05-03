@@ -1,7 +1,6 @@
 package com.da.dg2526.api.serviceTests.book;
 
 import com.da.dg2526.api.exceptions.ServiceValidationException;
-import com.da.dg2526.api.models.entities.BookEntity;
 import com.da.dg2526.api.models.entities.LendingEntity;
 import com.da.dg2526.api.models.entities.ReservationEntity;
 import com.da.dg2526.api.models.entities.UserEntity;
@@ -46,7 +45,7 @@ public class BookLendingTests extends AbstractBookServiceTestBase {
         assertEquals(Status.SUCCESS, result.status());
 
         // Testing DTO returns correct values.
-        assertEquals(testUserEntity.getName(), result.lendingReturnDTO().borrowerName());
+        assertEquals(testUserEntity.getCode(), result.lendingReturnDTO().borrowerCode());
         assertEquals(testBookEntity.getTitle(), result.lendingReturnDTO().bookTitle());
     }
 
@@ -84,7 +83,7 @@ public class BookLendingTests extends AbstractBookServiceTestBase {
         assertEquals(Status.SUCCESS, result.status());
 
         // Testing DTO returns correct values.
-        assertEquals(testUserEntity.getName(), result.lendingReturnDTO().borrowerName());
+        assertEquals(testUserEntity.getCode(), result.lendingReturnDTO().borrowerCode());
         assertEquals(testBookEntity.getTitle(), result.lendingReturnDTO().bookTitle());
 
     }

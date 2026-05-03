@@ -7,27 +7,21 @@ import com.da.dg2526.api.models.dto.reserveEntity.ReserveResultDTO;
 import com.da.dg2526.api.models.enums.Status;
 import com.da.dg2526.api.services.BookService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.ObjectMapper;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
-@WebMvcTest(BookController.class)
+@ExtendWith(MockitoExtension.class)
 public class BookControllerTests {
-
-    @Autowired
-    private MockMvc mockMvc;
 
     @InjectMocks
     private BookController bookController;
-    @Autowired
+
+    @Mock
     private BookService bookService;
 
     private final String serviceError = "Service Error";

@@ -33,7 +33,7 @@ public class BookAdditionTests extends AbstractBookServiceTestBase {
 
         var result = bookService.addNewBook(testBookDTO);
 
-        assertEquals("9999999999999", result.isbn());
+        assertEquals(testBookDTO.isbn(), result.isbn());
         assertEquals("test", result.title());
         assertEquals(2, result.copies());
         assertEquals("Other", result.category());

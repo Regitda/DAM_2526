@@ -3,7 +3,6 @@ package com.da.dg2526.api.serviceTests.book;
 import com.da.dg2526.api.exceptions.ServiceValidationException;
 import com.da.dg2526.api.models.entities.LendingEntity;
 import com.da.dg2526.api.models.enums.Status;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
