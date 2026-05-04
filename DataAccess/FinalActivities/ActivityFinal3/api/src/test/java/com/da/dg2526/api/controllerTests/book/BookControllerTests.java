@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,10 +46,9 @@ public class BookControllerTests {
     @Test
     void addBook_serviceException_failure() {
         when(bookService.addNewBook(testBookInputDTO)).thenThrow(new ServiceValidationException(serviceError));
+        var exception = assertThrows(ServiceValidationException.class, () -> bookController.addBook(testBookInputDTO));
 
-        var result = bookController.addBook(testBookInputDTO);
-        assertEquals(400, result.getStatusCode().value());
-        assertEquals(serviceError, result.getBody());
+        assertEquals(serviceError, exception.getMessage());
     }
 
 
@@ -79,9 +79,8 @@ public class BookControllerTests {
     void lendBook_serviceException_failure() {
         when(bookService.lendBook(testBookId, testUserId)).thenThrow(new ServiceValidationException(serviceError));
 
-        var result = bookController.lendBook(testBookId, testUserId);
-        assertEquals(400, result.getStatusCode().value());
-        assertEquals(serviceError, result.getBody());
+        var exception = assertThrows(ServiceValidationException.class, () -> bookController.lendBook(testBookId, testUserId));
+        assertEquals(serviceError, exception.getMessage());
     }
 
     @Test
@@ -110,9 +109,8 @@ public class BookControllerTests {
     void returnBook_serviceException_failure() {
         when(bookService.returnBook(testBookId, testUserId)).thenThrow(new ServiceValidationException(serviceError));
 
-        var result = bookController.returnBook(testBookId, testUserId);
-        assertEquals(400, result.getStatusCode().value());
-        assertEquals(serviceError, result.getBody());
+        var exception = assertThrows(ServiceValidationException.class, () -> bookController.returnBook(testBookId, testUserId));
+        assertEquals(serviceError, exception.getMessage());
     }
 
     @Test
@@ -139,10 +137,9 @@ public class BookControllerTests {
     @Test
     void reserveBook_serviceException_failure() {
         when(bookController.reserveBook(testBookId, testUserId)).thenThrow(new ServiceValidationException(serviceError));
-        var result = bookController.reserveBook(testBookId, testUserId);
+        var exception = assertThrows(ServiceValidationException.class, () -> bookController.reserveBook(testBookId, testUserId));
 
-        assertEquals(400, result.getStatusCode().value());
-        assertEquals(serviceError, result.getBody());
+        assertEquals(serviceError, exception.getMessage());
     }
 
 }

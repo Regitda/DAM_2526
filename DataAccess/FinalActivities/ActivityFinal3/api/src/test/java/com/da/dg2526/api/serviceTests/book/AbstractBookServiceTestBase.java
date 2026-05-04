@@ -4,18 +4,21 @@ import com.da.dg2526.api.models.dao.*;
 import com.da.dg2526.api.models.dto.bookEntity.BookNewInputDTO;
 import com.da.dg2526.api.models.entities.BookEntity;
 import com.da.dg2526.api.models.entities.UserEntity;
+import com.da.dg2526.api.services.AbstractServiceErrorMessages;
 import com.da.dg2526.api.services.BookService;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-abstract class AbstractBookServiceTestBase {
+abstract class AbstractBookServiceTestBase  extends AbstractServiceErrorMessages {
 
     @Mock
     protected IBookEntityDAO bookEntityDAO;
@@ -34,6 +37,14 @@ abstract class AbstractBookServiceTestBase {
     protected final BookNewInputDTO testBookDTO = new BookNewInputDTO("testBookId", "test", 2, "test book if seen on production something went wrong", "test publisher", "OTHER");
     protected final String testUserId = "testUserId";
     protected final String testBookId = "testBookId";
+
+    protected final ArrayList<BookNewInputDTO> testBookDTOList = new ArrayList<>(
+            List.of(
+                    testBookDTO,
+                    new BookNewInputDTO("testBookId2", "test2", 3, "test book if seen on production something went wrong", "test publisher", "OTHER"),
+                    new BookNewInputDTO("testBookId3", "test3", 3, "test book if seen on production something went wrong", "test publisher", "OTHER")
+            )
+    );
 
     protected UserEntity createUser() {
         var user = new UserEntity();
@@ -55,13 +66,14 @@ abstract class AbstractBookServiceTestBase {
         when(userEntityDAO.findById(testUserId)).thenReturn(Optional.of(user));
     }
 
-    // Repeated book tests
+    // Book not found.
     protected void mockBookNotFound() {
         when(bookEntityDAO.findById(testBookId)).thenReturn(Optional.empty());
+        when(userEntityDAO.findById(testUserId)).thenReturn(Optional.of(createUser()));
     }
-    // Repeated user tests
+    // User not found.
     protected void mockUserNotFound() {
-        when(bookEntityDAO.findById(testBookId)).thenReturn(Optional.of(new BookEntity()));
+        when(bookEntityDAO.findById(testBookId)).thenReturn(Optional.of(createBook()));
         when(userEntityDAO.findById(testUserId)).thenReturn(Optional.empty());
     }
 

@@ -70,7 +70,7 @@ public class BookReserveTests extends AbstractBookServiceTestBase {
 
         var exception = assertThrows(ServiceValidationException.class, () -> bookService.reserveBook(testBookId, testUserId));
 
-        assertEquals("Email or phone is obligatory for reservation", exception.getMessage());
+        assertEquals(createErrorUserPersonalDetailsMissing(testUserId), exception.getMessage());
 
         verify(reservationEntityDAO, never()).save(any(ReservationEntity.class));
     }
@@ -105,7 +105,7 @@ public class BookReserveTests extends AbstractBookServiceTestBase {
 
         var exception = assertThrows(ServiceValidationException.class, () -> bookService.reserveBook(testBookId, testUserId));
 
-        assertEquals("Book has free copies to lend", exception.getMessage());
+        assertEquals(createErrorBookHasFreeLendings(testBookId, testBook.getCopies()), exception.getMessage());
 
         verify(reservationEntityDAO, never()).save(any(ReservationEntity.class));
     }
@@ -114,18 +114,18 @@ public class BookReserveTests extends AbstractBookServiceTestBase {
     @Test
     void reserveBook_bookNotFound_failure() {
         mockBookNotFound();
-        var exception = assertThrows(ServiceValidationException.class, () -> bookService.returnBook(testBookId, testUserId));
+        var exception = assertThrows(ServiceValidationException.class, () -> bookService.reserveBook(testBookId, testUserId));
 
-        assertEquals("Book with provided ISBN does not exist: " + testBookId, exception.getMessage());
+        assertEquals(createErrorBookDoesNotExist(testBookId), exception.getMessage());
     }
 
     // User valid test.
     @Test
     void reserveBook_userNotFound_failure() {
         mockUserNotFound();
-        var exception = assertThrows(ServiceValidationException.class, () -> bookService.returnBook(testBookId, testUserId));
+        var exception = assertThrows(ServiceValidationException.class, () -> bookService.reserveBook(testBookId, testUserId));
 
-        assertEquals("No user with provided id found: " + testUserId, exception.getMessage());
+        assertEquals(createErrorUserDoesNotExist(testUserId), exception.getMessage());
     }
 
 }

@@ -35,6 +35,9 @@ public class BookReturnTests extends AbstractBookServiceTestBase {
 
         assertEquals(Status.SUCCESS, result.status());
         assertFalse(result.lateReturn());
+        assertEquals(createSuccessBookReturnedMessage(testBook, false), result.message());
+
+
         assertNotNull(lending.getBook());
     }
 
@@ -53,8 +56,13 @@ public class BookReturnTests extends AbstractBookServiceTestBase {
 
         when(lendingEntityDAO.findFirstByBookEntityAndBorrowerAndReturningdateIsNullOrderByIdDesc(testBook, testUser)).thenReturn(Optional.of(lending));
         var result = bookService.returnBook(testBookId, testUserId);
+
+        // Check of result code, late return value and message.
         assertEquals(Status.SUCCESS, result.status());
         assertTrue(result.lateReturn());
+        assertEquals(createSuccessBookReturnedMessage(testBook, true), result.message());
+
+        // Book should be null.
         assertNotNull(lending.getBook());
     }
 
@@ -68,7 +76,7 @@ public class BookReturnTests extends AbstractBookServiceTestBase {
         when(lendingEntityDAO.findFirstByBookEntityAndBorrowerAndReturningdateIsNullOrderByIdDesc(testBook, testUser)).thenReturn(Optional.empty());
         var exception = assertThrows(ServiceValidationException.class, () -> bookService.returnBook(testBookId, testUserId));
 
-        assertEquals("Lending not found", exception.getMessage());
+        assertEquals(createErrorLendingNotFoundMessage(testBookId, testUserId), exception.getMessage());
 
         // Test user was unfined, if somehow they are now something is wrong.
         assertNull(testUser.getFined());
@@ -81,7 +89,7 @@ public class BookReturnTests extends AbstractBookServiceTestBase {
         mockBookNotFound();
         var exception = assertThrows(ServiceValidationException.class, () -> bookService.returnBook(testBookId, testUserId));
 
-        assertEquals("Book with provided ISBN does not exist: " + testBookId, exception.getMessage());
+        assertEquals(createErrorBookDoesNotExist(testBookId), exception.getMessage());
     }
 
     // User valid test.
@@ -90,7 +98,7 @@ public class BookReturnTests extends AbstractBookServiceTestBase {
         mockUserNotFound();
         var exception = assertThrows(ServiceValidationException.class, () -> bookService.returnBook(testBookId, testUserId));
 
-        assertEquals("No user with provided id found: " + testUserId, exception.getMessage());
+        assertEquals(createErrorUserDoesNotExist(testUserId), exception.getMessage());
     }
 
 }

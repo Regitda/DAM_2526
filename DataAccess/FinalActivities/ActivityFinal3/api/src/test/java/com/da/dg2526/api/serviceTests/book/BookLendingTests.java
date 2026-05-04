@@ -60,9 +60,6 @@ public class BookLendingTests extends AbstractBookServiceTestBase {
         testReservationEntity.setBorrower(testUserEntity);
         testReservationEntity.setBook(testBookEntity);
 
-        // User and book tests.
-        when(userEntityDAO.findById(testUserId)).thenReturn(Optional.of(testUserEntity));
-        when(bookEntityDAO.findById(testBookId)).thenReturn(Optional.of(testBookEntity));
 
         // Book not lent and user has not borrowed any books
         when(lendingEntityDAO.countAllByBorrowerAndReturningdateIsNull(testUserEntity)).thenReturn(0);
@@ -95,16 +92,14 @@ public class BookLendingTests extends AbstractBookServiceTestBase {
         var testBookEntity = createBook();
         mockBookAndUser(testBookEntity, testUserEntity);
 
+        // Other user who is the owner of the reserve.
         var testOtherUserEntity = new UserEntity();
+        testOtherUserEntity.setName("OtherUser");
         testOtherUserEntity.setName("OtherUser");
 
         var testReservationEntity = new ReservationEntity();
         testReservationEntity.setBorrower(testOtherUserEntity);
         testReservationEntity.setBook(testBookEntity);
-
-        // User and book tests.
-        when(userEntityDAO.findById(testUserId)).thenReturn(Optional.of(testUserEntity));
-        when(bookEntityDAO.findById(testBookId)).thenReturn(Optional.of(testBookEntity));
 
         // Book not lent and user has not borrowed any books
         when(lendingEntityDAO.countAllByBorrowerAndReturningdateIsNull(testUserEntity)).thenReturn(0);
@@ -139,10 +134,6 @@ public class BookLendingTests extends AbstractBookServiceTestBase {
         var testBookEntity = createBook();
         mockBookAndUser(testBookEntity, testUserEntity);
 
-        // User and book tests.
-        when(userEntityDAO.findById(testUserId)).thenReturn(Optional.of(testUserEntity));
-        when(bookEntityDAO.findById(testBookId)).thenReturn(Optional.of(testBookEntity));
-
         // If user is fined nothing happens outside of this.
         var result = bookService.lendBook(testBookId, testUserId);
 
@@ -164,10 +155,6 @@ public class BookLendingTests extends AbstractBookServiceTestBase {
         var testBookEntity = createBook();
         mockBookAndUser(testBookEntity, testUserEntity);
 
-
-        // User and book tests.
-        when(userEntityDAO.findById(testUserId)).thenReturn(Optional.of(testUserEntity));
-        when(bookEntityDAO.findById(testBookId)).thenReturn(Optional.of(testBookEntity));
 
         // Book not lent and user has not borrowed any books
         when(lendingEntityDAO.countAllByBorrowerAndReturningdateIsNull(testUserEntity)).thenReturn(3);
@@ -194,10 +181,6 @@ public class BookLendingTests extends AbstractBookServiceTestBase {
         var testBookEntity = createBook();
         mockBookAndUser(testBookEntity, testUserEntity);
 
-        // User and book tests.
-        when(userEntityDAO.findById(testUserId)).thenReturn(Optional.of(testUserEntity));
-        when(bookEntityDAO.findById(testBookId)).thenReturn(Optional.of(testBookEntity));
-
         // Book fully lent out and user has not borrowed any books
         when(lendingEntityDAO.countAllByBorrowerAndReturningdateIsNull(testUserEntity)).thenReturn(0);
         when(lendingEntityDAO.countAllByBookEntityAndReturningdateIsNull(testBookEntity)).thenReturn(2);
@@ -221,18 +204,18 @@ public class BookLendingTests extends AbstractBookServiceTestBase {
     @Test
     void lendBook_bookNotFound_failure() {
         mockBookNotFound();
-        var exception = assertThrows(ServiceValidationException.class, () -> bookService.returnBook(testBookId, testUserId));
+        var exception = assertThrows(ServiceValidationException.class, () -> bookService.lendBook(testBookId, testUserId));
 
-        assertEquals("Book with provided ISBN does not exist: " + testBookId, exception.getMessage());
+        assertEquals(createErrorBookDoesNotExist(testBookId), exception.getMessage());
     }
 
     // User valid test.
     @Test
     void lendBook_userNotFound_failure() {
         mockUserNotFound();
-        var exception = assertThrows(ServiceValidationException.class, () -> bookService.returnBook(testBookId, testUserId));
+        var exception = assertThrows(ServiceValidationException.class, () -> bookService.lendBook(testBookId, testUserId));
 
-        assertEquals("No user with provided id found: " + testUserId, exception.getMessage());
+        assertEquals(createErrorUserDoesNotExist(testUserId), exception.getMessage());
     }
 
 }

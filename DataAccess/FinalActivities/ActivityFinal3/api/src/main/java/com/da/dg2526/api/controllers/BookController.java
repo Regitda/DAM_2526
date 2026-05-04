@@ -1,6 +1,5 @@
 package com.da.dg2526.api.controllers;
 
-import com.da.dg2526.api.exceptions.ServiceValidationException;
 import com.da.dg2526.api.models.dto.bookEntity.BookNewInputDTO;
 import com.da.dg2526.api.services.BookService;
 import com.da.dg2526.api.utils.LoggerUtil;
@@ -11,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @Validated
@@ -29,52 +30,35 @@ public class BookController {
     @PostMapping
     public ResponseEntity<?> addBook(@RequestBody @Valid BookNewInputDTO dto) {
         LoggerUtil.logInfo("Adding book");
-        try {
-            var response = bookService.addNewBook(dto);
-            return ResponseEntity.ok().body(response);
-
-        } catch (ServiceValidationException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-
+        var response = bookService.addNewBook(dto);
+        return ResponseEntity.ok().body(response);
     }
 
-    @PostMapping("{isbn}/lend")
+    @PostMapping("/import")
+    public ResponseEntity<?> addBooks(@RequestBody @Valid List<@Valid BookNewInputDTO> dto) {
+        var response = bookService.importBooks(dto);
+        return ResponseEntity.ok().body(response);
+    }
+
+    @PostMapping("/{isbn}/lend")
     public ResponseEntity<?> lendBook(@PathVariable @NotBlank @Size(max = 13) String isbn, @RequestParam @NotBlank @Size(max = 8) String userId) {
-
         LoggerUtil.logInfo("Lending book");
-        try {
-            var response = bookService.lendBook(isbn, userId);
-            return ResponseEntity.ok().body(response);
-        } catch (ServiceValidationException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-
-
+        var response = bookService.lendBook(isbn, userId);
+        return ResponseEntity.ok().body(response);
     }
 
-    @PostMapping("{isbn}/reserve")
+    @PostMapping("/{isbn}/reserve")
     public ResponseEntity<?> reserveBook(@PathVariable @NotBlank @Size(max = 13) String isbn, @RequestParam @NotBlank @Size(max = 8) String userId) {
-
         LoggerUtil.logInfo("Reserving book");
-
-        try {
-            var response = bookService.reserveBook(isbn, userId);
-            return ResponseEntity.ok().body(response);
-        } catch (ServiceValidationException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        var response = bookService.reserveBook(isbn, userId);
+        return ResponseEntity.ok().body(response);
     }
 
-    @PostMapping("{isbn}/return")
+    @PostMapping("/{isbn}/return")
     public ResponseEntity<?> returnBook(@PathVariable @NotBlank @Size(max = 13) String isbn, @RequestParam @NotBlank @Size(max = 8) String userId) {
         LoggerUtil.logInfo("Returning book");
-        try {
-            var response = bookService.returnBook(isbn, userId);
-            return ResponseEntity.ok().body(response);
-        } catch (ServiceValidationException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        var response = bookService.returnBook(isbn, userId);
+        return ResponseEntity.ok().body(response);
     }
 
 }

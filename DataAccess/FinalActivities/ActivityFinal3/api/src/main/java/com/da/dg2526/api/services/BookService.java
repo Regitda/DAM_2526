@@ -7,16 +7,19 @@ import com.da.dg2526.api.models.dto.lendingEntity.LendingReturnDTO;
 import com.da.dg2526.api.models.dto.reserveEntity.ReserveResultDTO;
 import com.da.dg2526.api.models.entities.*;
 import com.da.dg2526.api.models.enums.Status;
-import com.da.dg2526.api.utils.LoggerUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 @Service
-public class BookService {
+public class BookService extends AbstractServiceErrorMessages {
 
 
     private final IBookEntityDAO bookEntityDAO;
@@ -24,6 +27,10 @@ public class BookService {
     private final IUserEntityDAO userEntityDAO;
     private final ILendingEntityDAO lendingEntityDAO;
     private final IReservationEntityDAO reservationEntityDAO;
+
+
+    private static final Logger log = LoggerFactory.getLogger(BookService.class);
+
 
     @Autowired
     public BookService(IBookEntityDAO bookEntityDAO, ICategoryEntityDAO categoryEntityDAO, IUserEntityDAO userEntityDAO, ILendingEntityDAO lendingEntityDAO, IReservationEntityDAO reservationEntityDAO) {
@@ -37,43 +44,91 @@ public class BookService {
     //**Book addition**
     @Transactional
     public BookNewInputResultDTO addNewBook(BookNewInputDTO book) {
-        // Duplicants test
-        if (bookEntityDAO.existsById(book.isbn())) {
-            throw new ServiceValidationException("Book already exists");
+
+        var validatedBook = validateBook(book);
+        if (validatedBook.book() == null) {
+            var error = bookAddErrorGeneralMessage + validatedBook.error();
+            log.warn(error);
+            throw new ServiceValidationException(error);
         }
 
-        // Category test
-        var categoryEntity = categoryEntityDAO.findById(book.category()).orElseThrow(() -> new ServiceValidationException("Category doesn't exist: " + book.category()));
-        var newBookEntity = toBookEntity(book, categoryEntity);
+        // Saving and returning the saved entity.
+        var result = bookEntityDAO.save(validatedBook.book());
+        return toBookReturnDTO(result);
 
+    }
 
-        bookEntityDAO.save(newBookEntity);
-        return toBookReturnDTO(newBookEntity);
+    @Transactional
+    public List<BookNewInputResultDTO> importBooks(List<BookNewInputDTO> dto) {
+        List<BookEntity> validatedBooks = new ArrayList<>();
+        var errorStringBuilder = new StringBuilder();
 
+        // Test checks for validity, and returns errors. Only service level checks.
+        for (BookNewInputDTO bookNewInputDTO : dto) {
+            var result = validateBook(bookNewInputDTO);
+            if (result.book() == null) {
+                // Book is null so there is an error.
+                errorStringBuilder.append(result.error());
+            } else {
+                // There is no book entity if error happens
+                validatedBooks.add(result.book());
+            }
+        }
+
+        // If all books failed.
+        if (validatedBooks.isEmpty()) {
+            var error = createErrorBookImportFullyFailedMessage(dto.size(), errorStringBuilder);
+            log.warn(error);
+            throw new ServiceValidationException(error);
+        }
+
+        if (!errorStringBuilder.isEmpty()) {
+            var error = bookImportGeneralMessageError + errorStringBuilder;
+            log.warn(error);
+            throw new ServiceValidationException(error);
+        }
+
+        // Save all and return list containing all added books.
+        var iterableResult = bookEntityDAO.saveAll(validatedBooks);
+        var results = new ArrayList<BookNewInputResultDTO>();
+        for (BookEntity bookEntity : iterableResult) {
+            results.add(toBookReturnDTO(bookEntity));
+        }
+
+        return results;
     }
 
     @Transactional
     public BookReturnResponseDTO returnBook(String isbn, String userId) {
         var results = checkBookAndUserExists(isbn, userId);
-        var user = results.user;
-        var book = results.book;
+        var user = results.user();
+        var book = results.book();
 
         // Test if lending even exists
-        var lending = lendingEntityDAO.findFirstByBookEntityAndBorrowerAndReturningdateIsNullOrderByIdDesc(book, user).orElseThrow(() -> new ServiceValidationException("Lending not found"));
+        log.debug("Searching active lending for ISBN {} and user {}", isbn, userId);
+        var lendingOpt = lendingEntityDAO.findFirstByBookEntityAndBorrowerAndReturningdateIsNullOrderByIdDesc(book, user);
+
+        if (lendingOpt.isEmpty()) {
+            log.debug("No active lending found for ISBN {} and user {}", isbn, userId);
+            throw new ServiceValidationException(createErrorLendingNotFoundMessage(isbn, userId));
+        }
+        var lending = lendingOpt.get();
 
         // Late return, return will be processed but all books returned late will cause fine to reset.
         var dateNow = LocalDate.now();
         var fined = lending.getLendingdate().plusDays(7).isBefore(dateNow);
-        LoggerUtil.logInfo("Processing return of book: " + isbn + ", was user fined: " + fined);
+        log.debug("Processing return of book: {}, was user fined: {}", isbn, fined);
 
         // Setting fined endFineDate.
         if (fined) {
             user.setFined(dateNow);
+            log.warn("User was fined {}, dated {}", userId, dateNow);
         }
 
         // Marks lending as finished.
         lending.setReturningdate(dateNow);
-        return new BookReturnResponseDTO(Status.SUCCESS, "Book " + book.getTitle() + " was returned.", fined);
+        log.debug("Lending of book {}, by user {} was success ", isbn, user);
+        return new BookReturnResponseDTO(Status.SUCCESS, createSuccessBookReturnedMessage(book,fined), fined);
     }
 
 
@@ -83,17 +138,17 @@ public class BookService {
 
         // I could cut down on fined check, but if someone calls api directly fine can be avoided.
         var results = checkBookAndUserExists(isbn, userId);
-        var user = results.user;
-        var book = results.book;
+        var user = results.user();
+        var book = results.book();
 
-
+        log.debug("User {} attempting to reserve a book with isbn {}", userId, isbn);
         // Checking fined status first to not give "Reserve option" while they can't even lend it.
         var userEntityFinedDate = user.getFined();
         if (userEntityFinedDate != null) {
             var userFinedResult = isUserFined(userEntityFinedDate);
-            if (userFinedResult.isFined) {
-                LoggerUtil.logWarning("User is Fined, canceling reservation.");
-                return new BookReserveResponseDTO(Status.FAILURE, "User is currently fined, end of fine: " + userFinedResult.endFineDate, null);
+            if (userFinedResult.isFined()) {
+                log.warn("User {} is fined, fine started on {}, end-date: {}", userId, userEntityFinedDate, userFinedResult.endFineDate());
+                return new BookReserveResponseDTO(Status.FAILURE, createErrorUserCurrentlyFined(userId, userFinedResult.endFineDate()), null);
             }
         }
 
@@ -102,7 +157,9 @@ public class BookService {
         var phone = user.getPhone();
 
         if (email == null && phone == null) {
-            throw new ServiceValidationException("Email or phone is obligatory for reservation");
+            var error = createErrorUserPersonalDetailsMissing(userId);
+            log.debug("{}", error);
+            throw new ServiceValidationException(error);
         }
 
         //If book has copies and is unreserved then reservation is not allowed
@@ -110,15 +167,18 @@ public class BookService {
         var reserved = reservationEntityDAO.countAllByBookEntityAndLendingEntityIsNull(book);
 
         // Without reserve check you get stuck.
-        if (lent < book.getCopies() && reserved == 0) {
-            throw new ServiceValidationException("Book has free copies to lend");
+        var freeCopies = book.getCopies() - lent;
+        if (freeCopies > 0 && reserved == 0) {
+            var error = createErrorBookHasFreeLendings(isbn, freeCopies);
+            log.debug("{}", error);
+            throw new ServiceValidationException(error);
         }
 
         // From forum comment it seems user can reserve as many books as they want...
         var newReservation = toReservationEntity(book, user);
         reservationEntityDAO.save(newReservation);
 
-        return new BookReserveResponseDTO(Status.SUCCESS, "", toReservationResultDTO(userId, reserved+1));
+        return new BookReserveResponseDTO(Status.SUCCESS, "", toReservationResultDTO(userId, reserved + 1));
 
     }
 
@@ -127,36 +187,50 @@ public class BookService {
     public BookLendingResponseDTO lendBook(String isbn, String userId) {
 
         var results = checkBookAndUserExists(isbn, userId);
-        var user = results.user;
-        var book = results.book;
+        var user = results.user();
+        var book = results.book();
 
         // Checking fined status first to not give "Reserve option" while they can't even lend it.
+        log.debug("User {} attempting to lend a book with isbn {}", userId, isbn);
         var userEntityFinedDate = user.getFined();
         if (userEntityFinedDate != null) {
-            var userFinedResult = isUserFined(userEntityFinedDate);
-            if (userFinedResult.isFined) {
-                LoggerUtil.logWarning("User is fined, canceling lending.");
-                return new BookLendingResponseDTO(Status.FAILURE, "User is currently Fined, end of fine: " + userFinedResult.endFineDate, null, false);
+            var isUserFinedValidationResult = isUserFined(userEntityFinedDate);
+            if (isUserFinedValidationResult.isFined()) {
+                var error = createErrorUserIsFined(userId, isUserFinedValidationResult.endFineDate());
+                log.warn(error);
+                return new BookLendingResponseDTO(Status.FAILURE, error, null, false);
             }
         }
 
         // Check if user is borrowing more than 3 books.
+        // This checks if user borrowed books. Not amount of copies of a book are borrowed.
         var lendings = lendingEntityDAO.countAllByBorrowerAndReturningdateIsNull(user);
+        log.debug("Total lendings found on a book {}, {} ", isbn, lendings);
         if (lendings >= 3) {
-            return new BookLendingResponseDTO(Status.FAILURE, "User currently is borrowing 3 books. Limit is 3", null, false);
+            var error = createErrorUserLendingLimitExceeded(userId, lendings);
+            log.debug("{}", error);
+            return new BookLendingResponseDTO(Status.FAILURE, error, null, false);
         }
 
-        //Check if there are any left books.
+        //Check if there are any left books to borrow.
         var currenLendings = lendingEntityDAO.countAllByBookEntityAndReturningdateIsNull(book);
         var bookCopies = book.getCopies();
-        if (currenLendings >= bookCopies)
-            return new BookLendingResponseDTO(Status.FAILURE, "All books have been lent: Book has " + bookCopies + "copies, out of which are lent: " + currenLendings, null, true);
+        if (currenLendings >= bookCopies) {
+            var error = createErrorBookHasNoFreeLendings(isbn, bookCopies, currenLendings);
+            log.debug("{}", error);
+            return new BookLendingResponseDTO(Status.FAILURE, error, null, true);
+        }
+        log.debug("Book with ISBN: {} has {} free copies to lend", isbn, bookCopies - currenLendings);
 
         // Check if book is currently reserved and if the request user is the oldest reserver
         var oldestReserve = reservationEntityDAO.findFirstByBookEntityAndLendingEntityIsNullOrderByDateAsc(book);
         if (oldestReserve.isPresent()) {
-            if (!Objects.equals(oldestReserve.get().getBorrower().getCode(), user.getCode()))
-                return new BookLendingResponseDTO(Status.FAILURE, "The book is currently reserved by a different user", null, true);
+            var oldest = oldestReserve.get().getBorrower().getCode();
+            if (!Objects.equals(oldestReserve.get().getBorrower().getCode(), user.getCode())) {
+                var error = createErrorReserveRequestUserNotOwner(isbn);
+                log.debug("{} The oldest lending belongs to {}", error, oldest);
+                return new BookLendingResponseDTO(Status.FAILURE, error, null, true);
+            }
         }
 
         //Save new lending
@@ -164,20 +238,77 @@ public class BookService {
         lendingEntityDAO.save(newLending);
 
         // var reserves = reservationEntityDAO.countAllByBookEntityAndLendingEntityIsNull(book);
+        log.debug("Lending saved for book {} and user {}", isbn, userId);
         return new BookLendingResponseDTO(Status.SUCCESS, "", toLendingResultDTO(newLending, userId), false);
     }
 
 
     //** Validations **//
 
+    private record BookValidatedResult(BookEntity book, String error) {
+    }
+
+    private BookValidatedResult validateBook(BookNewInputDTO book) {
+
+        StringBuilder errors = new StringBuilder();
+        log.debug("Validating book with isbn: {}", book.isbn());
+        if (bookEntityDAO.existsById(book.isbn())) {
+            errors.append(createErrorBookAlreadyExistsMessage(book));
+        }
+
+        // Category test
+        var categoryOpt = categoryEntityDAO.findById(book.category());
+        CategoryEntity category = null;
+        if (categoryOpt.isEmpty()) {
+            errors.append(createErrorBookCategoryDoesNotExistMessage(book));
+        } else {
+            category = categoryOpt.get();
+        }
+
+
+        BookEntity bookEntity = null;
+        if (errors.isEmpty()) {
+            bookEntity = toBookEntity(book, category);
+        }
+        return new BookValidatedResult(bookEntity, errors.toString());
+
+    }
+
+
     // Returns Book and User, throws service level error if not found.
     private record BookAndUser(BookEntity book, UserEntity user) {
     }
 
     private BookAndUser checkBookAndUserExists(String isbn, String userId) {
-        var bookEntity = bookEntityDAO.findById(isbn).orElseThrow(() -> new ServiceValidationException("Book with provided ISBN does not exist: " + isbn));
+        var errorStringBuilder = new StringBuilder();
 
-        var userEntity = userEntityDAO.findById(userId).orElseThrow(() -> new ServiceValidationException("No user with provided id found: " + userId));
+        // Book existance check
+        log.debug("Checking book with ISBN: {} and user {} for existance", isbn, userId);
+        var bookEntityOpt = bookEntityDAO.findById(isbn);
+        BookEntity bookEntity = null;
+        if (bookEntityOpt.isEmpty()) {
+            var error = createErrorBookDoesNotExist(isbn);
+            errorStringBuilder.append(error);
+        } else {
+            bookEntity = bookEntityOpt.get();
+        }
+
+        // User existence check
+        var userEntityOpt = userEntityDAO.findById(userId);
+        UserEntity userEntity = null;
+        if (userEntityOpt.isEmpty()) {
+            var error = createErrorUserDoesNotExist(userId);
+            errorStringBuilder.append(error);
+        } else {
+            userEntity = userEntityOpt.get();
+        }
+
+
+        if (!errorStringBuilder.isEmpty()) {
+            var error = errorStringBuilder.toString();
+            log.debug(error);
+            throw new ServiceValidationException(error);
+        }
         return new BookAndUser(bookEntity, userEntity);
     }
 
@@ -234,5 +365,6 @@ public class BookService {
     private BookNewInputResultDTO toBookReturnDTO(BookEntity bookEntity) {
         return new BookNewInputResultDTO(bookEntity.getIsbn(), bookEntity.getTitle(), bookEntity.getCopies(), bookEntity.getOutline(), bookEntity.getPublisher(), bookEntity.getCategory().getName());
     }
+
 
 }
