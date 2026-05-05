@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.da.dg2526</groupId>
-    <artifactId>RestApiBackend</artifactId>
+    <artifactId>RestAPI Application</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>api</name>
     <description>api</description>

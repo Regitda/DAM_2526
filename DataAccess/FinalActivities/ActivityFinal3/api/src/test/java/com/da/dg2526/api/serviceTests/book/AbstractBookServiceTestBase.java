@@ -4,7 +4,7 @@ import com.da.dg2526.api.models.dao.*;
 import com.da.dg2526.api.models.dto.bookEntity.BookNewInputDTO;
 import com.da.dg2526.api.models.entities.BookEntity;
 import com.da.dg2526.api.models.entities.UserEntity;
-import com.da.dg2526.api.services.AbstractServiceErrorMessages;
+import com.da.dg2526.api.services.ServiceErrorMessages;
 import com.da.dg2526.api.services.BookService;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,8 +17,9 @@ import java.util.Optional;
 
 import static org.mockito.Mockito.when;
 
+
 @ExtendWith(MockitoExtension.class)
-abstract class AbstractBookServiceTestBase  extends AbstractServiceErrorMessages {
+abstract class AbstractBookServiceTestBase {
 
     @Mock
     protected IBookEntityDAO bookEntityDAO;

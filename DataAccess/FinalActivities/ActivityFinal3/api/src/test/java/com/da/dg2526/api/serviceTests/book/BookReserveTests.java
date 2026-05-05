@@ -11,6 +11,7 @@ import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static com.da.dg2526.api.services.ServiceErrorMessages.*;
 
 @ExtendWith(MockitoExtension.class)
 public class BookReserveTests extends AbstractBookServiceTestBase {
@@ -70,7 +71,7 @@ public class BookReserveTests extends AbstractBookServiceTestBase {
 
         var exception = assertThrows(ServiceValidationException.class, () -> bookService.reserveBook(testBookId, testUserId));
 
-        assertEquals(createErrorUserPersonalDetailsMissing(testUserId), exception.getMessage());
+        assertEquals(userPersonalDetailsMissing(testUserId), exception.getMessage());
 
         verify(reservationEntityDAO, never()).save(any(ReservationEntity.class));
     }
@@ -105,7 +106,7 @@ public class BookReserveTests extends AbstractBookServiceTestBase {
 
         var exception = assertThrows(ServiceValidationException.class, () -> bookService.reserveBook(testBookId, testUserId));
 
-        assertEquals(createErrorBookHasFreeLendings(testBookId, testBook.getCopies()), exception.getMessage());
+        assertEquals(bookHasFreeLendings(testBookId, testBook.getCopies()), exception.getMessage());
 
         verify(reservationEntityDAO, never()).save(any(ReservationEntity.class));
     }
@@ -116,7 +117,7 @@ public class BookReserveTests extends AbstractBookServiceTestBase {
         mockBookNotFound();
         var exception = assertThrows(ServiceValidationException.class, () -> bookService.reserveBook(testBookId, testUserId));
 
-        assertEquals(createErrorBookDoesNotExist(testBookId), exception.getMessage());
+        assertEquals(bookDoesNotExist(testBookId), exception.getMessage());
     }
 
     // User valid test.
@@ -125,7 +126,7 @@ public class BookReserveTests extends AbstractBookServiceTestBase {
         mockUserNotFound();
         var exception = assertThrows(ServiceValidationException.class, () -> bookService.reserveBook(testBookId, testUserId));
 
-        assertEquals(createErrorUserDoesNotExist(testUserId), exception.getMessage());
+        assertEquals(userDoesNotExist(testUserId), exception.getMessage());
     }
 
 }

@@ -1,4 +1,4 @@
-package com.da.dg2526;
+package com.da.dg2526.restapi;
 
 public class HttpResponse {
     private int statusCode;

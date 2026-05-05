@@ -32,7 +32,7 @@ public class BookControllerTests {
 
     // Adding books.
     @Test
-    void addBook_success() throws Exception {
+    void addBook_success() {
         var response = new BookNewInputResultDTO(testBookInputDTO.isbn(), testBookInputDTO.title(), testBookInputDTO.copies(), testBookInputDTO.outline(), testBookInputDTO.publisher(), testBookInputDTO.category());
 
         when(bookService.addNewBook(testBookInputDTO)).thenReturn(response);

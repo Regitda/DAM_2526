@@ -18,8 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+
 @Service
-public class BookService extends AbstractServiceErrorMessages {
+public class BookService {
 
 
     private final IBookEntityDAO bookEntityDAO;
@@ -47,7 +48,7 @@ public class BookService extends AbstractServiceErrorMessages {
 
         var validatedBook = validateBook(book);
         if (validatedBook.book() == null) {
-            var error = bookAddErrorGeneralMessage + validatedBook.error();
+            var error = ServiceErrorMessages.bookAddErrorGeneralMessage + validatedBook.error();
             log.warn(error);
             throw new ServiceValidationException(error);
         }
@@ -77,13 +78,13 @@ public class BookService extends AbstractServiceErrorMessages {
 
         // If all books failed.
         if (validatedBooks.isEmpty()) {
-            var error = createErrorBookImportFullyFailedMessage(dto.size(), errorStringBuilder);
+            var error = ServiceErrorMessages.bookImportFullyFailed(dto.size(), errorStringBuilder);
             log.warn(error);
             throw new ServiceValidationException(error);
         }
 
         if (!errorStringBuilder.isEmpty()) {
-            var error = bookImportGeneralMessageError + errorStringBuilder;
+            var error = ServiceErrorMessages.bookImportGeneralMessageError + errorStringBuilder;
             log.warn(error);
             throw new ServiceValidationException(error);
         }
@@ -110,7 +111,7 @@ public class BookService extends AbstractServiceErrorMessages {
 
         if (lendingOpt.isEmpty()) {
             log.debug("No active lending found for ISBN {} and user {}", isbn, userId);
-            throw new ServiceValidationException(createErrorLendingNotFoundMessage(isbn, userId));
+            throw new ServiceValidationException(ServiceErrorMessages.lendingNotFound(isbn, userId));
         }
         var lending = lendingOpt.get();
 
@@ -128,7 +129,7 @@ public class BookService extends AbstractServiceErrorMessages {
         // Marks lending as finished.
         lending.setReturningdate(dateNow);
         log.debug("Lending of book {}, by user {} was success ", isbn, user);
-        return new BookReturnResponseDTO(Status.SUCCESS, createSuccessBookReturnedMessage(book,fined), fined);
+        return new BookReturnResponseDTO(Status.SUCCESS, ServiceErrorMessages.bookReturnedSuccess(book,fined), fined);
     }
 
 
@@ -148,7 +149,7 @@ public class BookService extends AbstractServiceErrorMessages {
             var userFinedResult = isUserFined(userEntityFinedDate);
             if (userFinedResult.isFined()) {
                 log.warn("User {} is fined, fine started on {}, end-date: {}", userId, userEntityFinedDate, userFinedResult.endFineDate());
-                return new BookReserveResponseDTO(Status.FAILURE, createErrorUserCurrentlyFined(userId, userFinedResult.endFineDate()), null);
+                return new BookReserveResponseDTO(Status.FAILURE, ServiceErrorMessages.userCurrentlyFined(userId, userFinedResult.endFineDate()), null);
             }
         }
 
@@ -157,7 +158,7 @@ public class BookService extends AbstractServiceErrorMessages {
         var phone = user.getPhone();
 
         if (email == null && phone == null) {
-            var error = createErrorUserPersonalDetailsMissing(userId);
+            var error = ServiceErrorMessages.userPersonalDetailsMissing(userId);
             log.debug("{}", error);
             throw new ServiceValidationException(error);
         }
@@ -169,7 +170,7 @@ public class BookService extends AbstractServiceErrorMessages {
         // Without reserve check you get stuck.
         var freeCopies = book.getCopies() - lent;
         if (freeCopies > 0 && reserved == 0) {
-            var error = createErrorBookHasFreeLendings(isbn, freeCopies);
+            var error = ServiceErrorMessages.bookHasFreeLendings(isbn, freeCopies);
             log.debug("{}", error);
             throw new ServiceValidationException(error);
         }
@@ -196,7 +197,7 @@ public class BookService extends AbstractServiceErrorMessages {
         if (userEntityFinedDate != null) {
             var isUserFinedValidationResult = isUserFined(userEntityFinedDate);
             if (isUserFinedValidationResult.isFined()) {
-                var error = createErrorUserIsFined(userId, isUserFinedValidationResult.endFineDate());
+                var error = ServiceErrorMessages.userIsFined(userId, isUserFinedValidationResult.endFineDate());
                 log.warn(error);
                 return new BookLendingResponseDTO(Status.FAILURE, error, null, false);
             }
@@ -207,7 +208,7 @@ public class BookService extends AbstractServiceErrorMessages {
         var lendings = lendingEntityDAO.countAllByBorrowerAndReturningdateIsNull(user);
         log.debug("Total lendings found on a book {}, {} ", isbn, lendings);
         if (lendings >= 3) {
-            var error = createErrorUserLendingLimitExceeded(userId, lendings);
+            var error = ServiceErrorMessages.userLendingLimitExceeded(userId, lendings);
             log.debug("{}", error);
             return new BookLendingResponseDTO(Status.FAILURE, error, null, false);
         }
@@ -216,7 +217,7 @@ public class BookService extends AbstractServiceErrorMessages {
         var currenLendings = lendingEntityDAO.countAllByBookEntityAndReturningdateIsNull(book);
         var bookCopies = book.getCopies();
         if (currenLendings >= bookCopies) {
-            var error = createErrorBookHasNoFreeLendings(isbn, bookCopies, currenLendings);
+            var error = ServiceErrorMessages.bookHasNoFreeLendings(isbn, bookCopies, currenLendings);
             log.debug("{}", error);
             return new BookLendingResponseDTO(Status.FAILURE, error, null, true);
         }
@@ -227,7 +228,7 @@ public class BookService extends AbstractServiceErrorMessages {
         if (oldestReserve.isPresent()) {
             var oldest = oldestReserve.get().getBorrower().getCode();
             if (!Objects.equals(oldestReserve.get().getBorrower().getCode(), user.getCode())) {
-                var error = createErrorReserveRequestUserNotOwner(isbn);
+                var error = ServiceErrorMessages.reserveRequestUserNotOwner(isbn);
                 log.debug("{} The oldest lending belongs to {}", error, oldest);
                 return new BookLendingResponseDTO(Status.FAILURE, error, null, true);
             }
@@ -253,14 +254,14 @@ public class BookService extends AbstractServiceErrorMessages {
         StringBuilder errors = new StringBuilder();
         log.debug("Validating book with isbn: {}", book.isbn());
         if (bookEntityDAO.existsById(book.isbn())) {
-            errors.append(createErrorBookAlreadyExistsMessage(book));
+            errors.append(ServiceErrorMessages.bookAlreadyExists(book));
         }
 
         // Category test
         var categoryOpt = categoryEntityDAO.findById(book.category());
         CategoryEntity category = null;
         if (categoryOpt.isEmpty()) {
-            errors.append(createErrorBookCategoryDoesNotExistMessage(book));
+            errors.append(ServiceErrorMessages.bookCategoryDoesNotExist(book));
         } else {
             category = categoryOpt.get();
         }
@@ -287,7 +288,7 @@ public class BookService extends AbstractServiceErrorMessages {
         var bookEntityOpt = bookEntityDAO.findById(isbn);
         BookEntity bookEntity = null;
         if (bookEntityOpt.isEmpty()) {
-            var error = createErrorBookDoesNotExist(isbn);
+            var error = ServiceErrorMessages.bookDoesNotExist(isbn);
             errorStringBuilder.append(error);
         } else {
             bookEntity = bookEntityOpt.get();
@@ -297,7 +298,7 @@ public class BookService extends AbstractServiceErrorMessages {
         var userEntityOpt = userEntityDAO.findById(userId);
         UserEntity userEntity = null;
         if (userEntityOpt.isEmpty()) {
-            var error = createErrorUserDoesNotExist(userId);
+            var error = ServiceErrorMessages.userDoesNotExist(userId);
             errorStringBuilder.append(error);
         } else {
             userEntity = userEntityOpt.get();

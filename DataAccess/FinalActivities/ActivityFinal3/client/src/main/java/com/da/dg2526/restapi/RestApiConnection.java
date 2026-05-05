@@ -1,4 +1,4 @@
-package com.da.dg2526;
+package com.da.dg2526.restapi;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;

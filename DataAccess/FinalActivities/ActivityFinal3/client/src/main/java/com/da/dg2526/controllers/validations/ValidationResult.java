@@ -1,6 +1,6 @@
 package com.da.dg2526.controllers.validations;
 
-import org.activity.exceptions.ControllerValidationException;
+import com.da.dg2526.exceptions.ControllerValidationException;
 
 import java.util.Optional;
 

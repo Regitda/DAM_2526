@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
+import static com.da.dg2526.api.services.ServiceErrorMessages.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -51,7 +52,7 @@ public class BookAdditionTests extends AbstractBookServiceTestBase {
 
         ServiceValidationException exception = assertThrows(ServiceValidationException.class, () -> bookService.addNewBook(testBookDTO));
 
-        assertEquals(bookAddErrorGeneralMessage + createErrorBookCategoryDoesNotExistMessage(testBookDTO), exception.getMessage());
+        assertEquals(bookAddErrorGeneralMessage + bookCategoryDoesNotExist(testBookDTO), exception.getMessage());
 
         verify(bookEntityDAO, never()).save(any(BookEntity.class));
     }
@@ -67,7 +68,7 @@ public class BookAdditionTests extends AbstractBookServiceTestBase {
 
         ServiceValidationException exception = assertThrows(ServiceValidationException.class, () -> bookService.addNewBook(testBookDTO));
 
-        assertEquals(bookAddErrorGeneralMessage + createErrorBookAlreadyExistsMessage(testBookDTO), exception.getMessage());
+        assertEquals(bookAddErrorGeneralMessage + bookAlreadyExists(testBookDTO), exception.getMessage());
 
         verify(bookEntityDAO, never()).save(any(BookEntity.class));
     }
@@ -78,7 +79,7 @@ public class BookAdditionTests extends AbstractBookServiceTestBase {
 
         ServiceValidationException exception = assertThrows(ServiceValidationException.class, () -> bookService.addNewBook(testBookDTO));
 
-        assertEquals(bookAddErrorGeneralMessage + createErrorBookAlreadyExistsMessage(testBookDTO) + createErrorBookCategoryDoesNotExistMessage(testBookDTO), exception.getMessage());
+        assertEquals(bookAddErrorGeneralMessage + bookAlreadyExists(testBookDTO) + bookCategoryDoesNotExist(testBookDTO), exception.getMessage());
 
         verify(bookEntityDAO, never()).save(any(BookEntity.class));
     }
@@ -121,7 +122,7 @@ public class BookAdditionTests extends AbstractBookServiceTestBase {
         ServiceValidationException exception = assertThrows(ServiceValidationException.class, () -> bookService.importBooks(testBookDTOList));
 
         // Making sure the error is correct.
-        assertEquals(bookImportGeneralMessageError + createErrorBookAlreadyExistsMessage(invalidBook), exception.getMessage());
+        assertEquals(bookImportGeneralMessageError + bookAlreadyExists(invalidBook), exception.getMessage());
 
         verify(bookEntityDAO, never()).saveAll(Mockito.any());
     }
@@ -143,10 +144,10 @@ public class BookAdditionTests extends AbstractBookServiceTestBase {
         StringBuilder expectedErrors = new StringBuilder();
 
         for (var book : testBookDTOList) {
-            expectedErrors.append(createErrorBookAlreadyExistsMessage(book));
+            expectedErrors.append(bookAlreadyExists(book));
         }
 
-        assertEquals(createErrorBookImportFullyFailedMessage(testBookDTOList.size(), expectedErrors), exception.getMessage());
+        assertEquals(bookImportFullyFailed(testBookDTOList.size(), expectedErrors), exception.getMessage());
 
         verify(bookEntityDAO, never()).saveAll(Mockito.any());
         verify(bookEntityDAO, never()).save(any(BookEntity.class));
@@ -163,10 +164,10 @@ public class BookAdditionTests extends AbstractBookServiceTestBase {
         StringBuilder expectedErrors = new StringBuilder();
 
         for (var book : testBookDTOList) {
-            expectedErrors.append(createErrorBookAlreadyExistsMessage(book)).append(createErrorBookCategoryDoesNotExistMessage(book));
+            expectedErrors.append(bookAlreadyExists(book)).append(bookCategoryDoesNotExist(book));
         }
 
-        assertEquals(createErrorBookImportFullyFailedMessage(testBookDTOList.size(), expectedErrors), exception.getMessage());
+        assertEquals(bookImportFullyFailed(testBookDTOList.size(), expectedErrors), exception.getMessage());
 
         verify(bookEntityDAO, never()).saveAll(Mockito.any());
         verify(bookEntityDAO, never()).save(any(BookEntity.class));

@@ -15,6 +15,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static com.da.dg2526.api.services.ServiceErrorMessages.*;
+
 
 @ExtendWith(MockitoExtension.class)
 public class BookLendingTests extends AbstractBookServiceTestBase {
@@ -206,7 +208,7 @@ public class BookLendingTests extends AbstractBookServiceTestBase {
         mockBookNotFound();
         var exception = assertThrows(ServiceValidationException.class, () -> bookService.lendBook(testBookId, testUserId));
 
-        assertEquals(createErrorBookDoesNotExist(testBookId), exception.getMessage());
+        assertEquals(bookDoesNotExist(testBookId), exception.getMessage());
     }
 
     // User valid test.
@@ -215,7 +217,7 @@ public class BookLendingTests extends AbstractBookServiceTestBase {
         mockUserNotFound();
         var exception = assertThrows(ServiceValidationException.class, () -> bookService.lendBook(testBookId, testUserId));
 
-        assertEquals(createErrorUserDoesNotExist(testUserId), exception.getMessage());
+        assertEquals(userDoesNotExist(testUserId), exception.getMessage());
     }
 
 }
