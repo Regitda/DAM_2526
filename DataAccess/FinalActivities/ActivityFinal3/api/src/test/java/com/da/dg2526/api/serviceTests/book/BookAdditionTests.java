@@ -21,9 +21,9 @@ import static org.mockito.Mockito.*;
 public class BookAdditionTests extends AbstractBookServiceTestBase {
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private void setupBookMocks(BookNewInputDTO book, boolean bookExistsParam, Optional<CategoryEntity> categoryParam) {
-        when(bookEntityDAO.existsById(book.isbn())).thenReturn(bookExistsParam);
-        when(categoryEntityDAO.findById(book.category())).thenReturn(categoryParam);
+    private void setupBookMocks(BookNewInputDTO book, boolean shouldBookAlreadyExist, Optional<CategoryEntity> categoryThatWillBeFound) {
+        when(bookEntityDAO.existsById(book.isbn())).thenReturn(shouldBookAlreadyExist);
+        when(categoryEntityDAO.findById(book.category())).thenReturn(categoryThatWillBeFound);
     }
 
     @Test

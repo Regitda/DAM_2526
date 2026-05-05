@@ -5,7 +5,7 @@ import java.nio.file.Path;
 public final class ValidationMessages {
 
     public static String argumentsAmountNotCorrect(Integer amountProvided, Integer amountRequired) {
-        return "Number of arguments provided is not correct, provided: " + amountProvided + ", required:" + amountRequired+".";
+        return "Number of arguments provided is not correct, provided: " + amountProvided + ", required:" + amountRequired + ".";
     }
 
     public static String userIdRequired() {
@@ -56,6 +56,8 @@ public final class ValidationMessages {
         return "File must be an XML file ending with .xml: " + path;
     }
 
+    public static String xmlFileIsEmptyOrBroken() { return "XML file is empty or broken."; }
+
     public static String titleRequired() {
         return "Book title is required.";
     }
@@ -84,9 +86,9 @@ public final class ValidationMessages {
         return "Book publisher is too long. Maximum is " + ValidationLimits.MAX_PUBLISHER_LENGTH + " characters, current length is " + publisher.length() + ".";
     }
 
-    public static String categoryRequired() {
-        return "Category is required.";
-    }
+    // public static String categoryRequired() {
+    //    return "Category is required.";
+    //}
 
     public static String categoryTooLong(String category) {
         return "Category name is too long. Maximum is " + ValidationLimits.MAX_CATEGORY_LENGTH + " characters, current length is " + category.length() + ".";

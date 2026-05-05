@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<books>
+    <book>
+        <isbn>1234567890123</isbn>
+        <title>Clean Code</title>
+        <copies>3</copies>
+        <outline>Programming best practices</outline>
+        <publisher>Prentice</publisher>
+        <category>LIT</category>
+    </book>
+
+    <book>
+        <isbn>9876543210123</isbn>
+        <title>Roman History</title>
+        <copies>1</copies>
+        <category>HIST</category>
+    </book>
+</books>

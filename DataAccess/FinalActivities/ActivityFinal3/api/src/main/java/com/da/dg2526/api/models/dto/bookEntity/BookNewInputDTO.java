@@ -25,7 +25,7 @@ public record BookNewInputDTO(
         @Size(max = 60, message = "Publisher must be at most 60 characters")
         String publisher,
 
-        @NotBlank(message = "Category is required")
+        //@NotBlank(message = "Category is required") considering example having this as null I will just set everything to other.
         @Size(max = 8, message = "Category must be at most 8 characters")
         String category
 

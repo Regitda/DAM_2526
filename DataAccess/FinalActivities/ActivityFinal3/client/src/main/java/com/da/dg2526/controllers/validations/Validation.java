@@ -21,7 +21,7 @@ public final class Validation {
             return ValidationResult.fail(ValidationMessages.userIdTooLong(studentID));
         }
 
-        return ValidationResult.ok(studentID);
+        return ValidationResult.ok(studentID.toUpperCase());
     }
 
     public static ValidationResult<String> verifyBookCode(String bookCodeRAW) {
@@ -172,19 +172,40 @@ public final class Validation {
 
     public static ValidationResult<String> verifyCategory(String categoryRAW) {
         if (categoryRAW == null) {
-            return ValidationResult.fail(ValidationMessages.categoryRequired());
+            return ValidationResult.ok("");
         }
-
         String category = categoryRAW.trim();
-
         if (category.isEmpty()) {
-            return ValidationResult.fail(ValidationMessages.categoryRequired());
+            return ValidationResult.ok("");
         }
 
         if (category.length() > ValidationLimits.MAX_CATEGORY_LENGTH) {
             return ValidationResult.fail(ValidationMessages.categoryTooLong(category));
         }
 
-        return ValidationResult.ok(category);
+        return ValidationResult.ok(category.toUpperCase());
     }
+
+
+    public record StudentAndBookValidation(String isbn, String userId, String errors) {
+    }
+
+    public static StudentAndBookValidation validateStudentAndBook(String arg0isbn, String arg1userId) {
+        StringBuilder errors = new StringBuilder();
+        var bookIsbnValidation = Validation.verifyIsbn(arg0isbn);
+        var userIdValidation = Validation.verifyStudentID(arg1userId);
+
+        appendError(errors, bookIsbnValidation);
+        appendError(errors, userIdValidation);
+        if (!errors.isEmpty()) {
+            return new StudentAndBookValidation(null, null, errors.toString());
+        }
+        return new StudentAndBookValidation(bookIsbnValidation.getValueOrThrow(), userIdValidation.getValueOrThrow(), "");
+    }
+
+    public static <T> void appendError(StringBuilder errors, ValidationResult<T> result) {
+        result.error().ifPresent(error -> errors.append("- ").append(error).append("\n"));
+    }
+
+
 }

@@ -1,18 +1,33 @@
 package com.da.dg2526.xmlParser;
 
-import com.da.dg2526.models.dto.BookInputDto;
 import com.da.dg2526.models.dto.BookXmlDto;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
 
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParserFactory;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BookXmlParser {
-    public static List<BookXmlDto> parse(Path xmlPath) {
+public class BookXmlParser extends DefaultHandler {
+
+    public static List<BookXmlDto> parseSAX(Path filePath) throws ParserConfigurationException, SAXException, IOException {
+        var saxParser = SAXParserFactory.newInstance().newSAXParser();
+        var handler = new MyXmlContactsHandler();
+
+        saxParser.parse(filePath.toString(), handler);
+
+        return handler.getBooks();
+    }
+
+
+    public static List<BookXmlDto> parseDOM(Path xmlPath) {
         try {
             //DOM parser, loads file.
             Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(xmlPath.toFile());
@@ -34,7 +49,7 @@ public class BookXmlParser {
                 String copies = directText(bookElement, "copies");
                 String outline = directText(bookElement, "outline");   // may be null
                 String publisher = directText(bookElement, "publisher");   // may be null
-                String category = directText(bookElement, "category");
+                String category = directText(bookElement, "category"); // may be null
 
                 result.add(new BookXmlDto(isbn, title, copies, outline, publisher, category));
             }

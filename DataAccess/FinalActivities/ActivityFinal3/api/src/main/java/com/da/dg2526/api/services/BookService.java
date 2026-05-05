@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 
 @Service
@@ -29,7 +30,7 @@ public class BookService {
     private final ILendingEntityDAO lendingEntityDAO;
     private final IReservationEntityDAO reservationEntityDAO;
 
-
+    private final String otherCategoryId = "OTHER";
     private static final Logger log = LoggerFactory.getLogger(BookService.class);
 
 
@@ -129,7 +130,7 @@ public class BookService {
         // Marks lending as finished.
         lending.setReturningdate(dateNow);
         log.debug("Lending of book {}, by user {} was success ", isbn, user);
-        return new BookReturnResponseDTO(Status.SUCCESS, ServiceErrorMessages.bookReturnedSuccess(book,fined), fined);
+        return new BookReturnResponseDTO(Status.SUCCESS, ServiceErrorMessages.bookReturnedSuccess(book, fined), fined);
     }
 
 
@@ -257,15 +258,17 @@ public class BookService {
             errors.append(ServiceErrorMessages.bookAlreadyExists(book));
         }
 
+        Optional<CategoryEntity> categoryOpt;
         // Category test
-        var categoryOpt = categoryEntityDAO.findById(book.category());
+        if (book.category().isEmpty()) categoryOpt = categoryEntityDAO.findById(otherCategoryId);
+        else categoryOpt = categoryEntityDAO.findById(book.category());
+
         CategoryEntity category = null;
         if (categoryOpt.isEmpty()) {
             errors.append(ServiceErrorMessages.bookCategoryDoesNotExist(book));
         } else {
             category = categoryOpt.get();
         }
-
 
         BookEntity bookEntity = null;
         if (errors.isEmpty()) {

@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.da.dg2526</groupId>
-    <artifactId>RestAPI Application</artifactId>
+    <artifactId>RestAPI-Application</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>api</name>
     <description>api</description>
@@ -48,6 +48,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+            <version>42.7.11</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>

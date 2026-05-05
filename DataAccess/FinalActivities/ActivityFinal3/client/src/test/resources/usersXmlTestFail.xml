@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<books>
+    <book>
+        <isbn>Too long isbn should happen</isbn>
+        <title> </title>
+        <copies>-1</copies>
+        <outline>Test book</outline>
+        <publisher>TestPub</publisher>
+        <category>SCIENCE</category>
+    </book>
+
+    <book>
+        <isbn>Totally normal ISBN</isbn>
+        <title>The best title</title>
+        <copies>notInt</copies>
+        <outline>Test book</outline>
+        <publisher>TestPub</publisher>
+    </book>
+
+    <book>
+        <isbn>The all errors 12345oniisnylmqzgjjwdjkoyuytiviazhaqcmdbwjixxlntuqwvwmkjfalsxkldffalnxzjttksnnlqehjkjtfyonkdycdq</isbn>
+        <title>The longest title oniisnylmqzgjjwdjkoyuytiviazhaqcmdbwjixxlntuqwvwmkjfalsxkldffalnxzjttksnnlqehjkjtfyonkdycdq</title>
+        <copies>notInt</copies>
+        <outline>oniisnylmqzgjjwdjkoyuytiviazhaqcmdbwjixxlntuqwvwmkjfalsxkldffalnxzjttksnnlqehjkjtfyonkdycdqoniisnylmqzgjjwdjkoyuytiviazhaqcmdbwjixxlntuqwvwmkjfalsxkldffalnxzjttksnnlqehjkjtfyonkdycdqoniisnylmqzgjjwdjkoyuytiviazhaqcmdbwjixxlntuqwvwmkjfalsxkldffalnxzjttksnnlqehjkjtfyonkdycdqoniisnylmqzgjjwdjkoyuytiviazhaqcmdbwjixxlntuqwvwmkjfalsxkldffalnxzjttksnnlqehjkjtfyonkdycdqoniisnylmqzgjjwdjkoyuytiviazhaqcmdbwjixxlntuqwvwmkjfalsxkldffalnxzjttksnnlqehjkjtfyonkdycdqoniisnylmqzgjjwdjkoyuytiviazhaqcmdbwjixxlntuqwvwmkjfalsxkldffalnxzjttksnnlqehjkjtfyonkdycdq</outline>
+        <publisher>oniisnylmqzgjjwdjkoyuytiviazhaqcmdbwjixxlntuqwvwmkjfalsxk</publisher>
+        <category>SCIENCE IS SCIENCE IS SCIENCE</category>
+    </book>
+</books>

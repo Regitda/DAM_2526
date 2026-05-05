@@ -10,11 +10,7 @@ import com.da.dg2526.restapi.RestApiConnection;
 public class Main {
     public static void main(String[] args) {
         var parsed = CommandParser.parse(args);
-        var conn = new RestApiConnection(
-                "http://localhost:8080/",
-                "restapi"
-        );
-
+        var conn = new RestApiConnection("http://localhost:8080/", "restapi");
 
         switch (parsed.command()) {
             case HELP:

@@ -6,7 +6,7 @@ import com.da.dg2526.controllers.validations.Validation;
 import com.da.dg2526.controllers.validations.ValidationMessages;
 import com.da.dg2526.controllers.validations.ValidationResult;
 import com.da.dg2526.exceptions.ControllerValidationException;
-import com.da.dg2526.models.dto.BookInputDto;
+import com.da.dg2526.models.dto.BookDataDto;
 import com.da.dg2526.models.dto.BookXmlDto;
 import com.da.dg2526.restapi.RestApiConnection;
 import com.da.dg2526.utils.LoggerUtil;
@@ -40,16 +40,30 @@ public class AddNewBook {
         var xmlVerificationResult = Validation.verifyXmlFilePath(args[0]);
 
         if (xmlVerificationResult.isInvalid()) {
-            xmlVerificationResult.error().ifPresent(LoggerUtil::logError);
+            var error = new StringBuilder();
+            Validation.appendError(error, xmlVerificationResult);
+            LoggerUtil.logError(error.toString());
             HelpPrinter.printAddHelp();
             return;
         }
 
+        List<BookXmlDto> rawBooks = new ArrayList<>();
+
         var xmlPath = xmlVerificationResult.getValueOrThrow();
-        var rawBooks = BookXmlParser.parse(xmlPath);
+        try {
+            rawBooks = BookXmlParser.parseSAX(xmlPath);
+        } catch (Exception e) {
+            LoggerUtil.logError(e.getMessage());
+            HelpPrinter.printAddHelp();
+            return;
+        }
+        if (rawBooks.isEmpty()) {
+            LoggerUtil.logError(ValidationMessages.xmlFileIsEmptyOrBroken());
+            return;
+        }
 
         StringBuilder errors = new StringBuilder();
-        List<BookInputDto> validBooks = new ArrayList<>();
+        List<BookDataDto> validBooks = new ArrayList<>();
 
         for (int index = 0; index < rawBooks.size(); index++) {
             var result = validateBook(rawBooks.get(index), index);
@@ -61,7 +75,8 @@ public class AddNewBook {
         }
 
         if (!errors.isEmpty()) {
-            throw new ControllerValidationException(errors.toString());
+            LoggerUtil.logError(errors.toString());
+            return;
         }
         String books;
         try {
@@ -77,7 +92,7 @@ public class AddNewBook {
         }
     }
 
-    private ValidationResult<BookInputDto> validateBook(BookXmlDto rawBook, int index) {
+    private ValidationResult<BookDataDto> validateBook(BookXmlDto rawBook, int index) {
         StringBuilder errors = new StringBuilder();
 
         var isbn = Validation.verifyIsbn(rawBook.isbn());
@@ -87,36 +102,32 @@ public class AddNewBook {
         var publisher = Validation.verifyPublisher(rawBook.publisher());
         var category = Validation.verifyCategory(rawBook.category());
 
-        appendError(errors, isbn);
-        appendError(errors, title);
-        appendError(errors, copies);
-        appendError(errors, outline);
-        appendError(errors, publisher);
-        appendError(errors, category);
+        Validation.appendError(errors, isbn);
+        Validation.appendError(errors, title);
+        Validation.appendError(errors, copies);
+        Validation.appendError(errors, outline);
+        Validation.appendError(errors, publisher);
+        Validation.appendError(errors, category);
 
         if (!errors.isEmpty()) {
-            return ValidationResult.fail("Book input at index " + index + " has errors:\n" + errors);
+            return ValidationResult.fail("\nBook input at index " + index + " has errors:\n" + errors);
         }
 
-        BookInputDto cleanedBook = new BookInputDto(isbn.getValueOrThrow(), title.getValueOrThrow(), copies.getValueOrThrow(), outline.getValueOrThrow(), publisher.getValueOrThrow(), category.getValueOrThrow());
+        BookDataDto cleanedBook = new BookDataDto(isbn.getValueOrThrow(), title.getValueOrThrow(), copies.getValueOrThrow(), outline.getValueOrThrow(), publisher.getValueOrThrow(), category.getValueOrThrow());
 
         return ValidationResult.ok(cleanedBook);
     }
 
-    private static <T> void appendError(StringBuilder errors, ValidationResult<T> result) {
-        result.error().ifPresent(error -> errors.append("- ").append(error).append("\n"));
-    }
-
-    private String booksToJson(List<BookInputDto> books) throws JSONException {
+    private String booksToJson(List<BookDataDto> books) throws JSONException {
         var jsonArray = new JSONArray();
-        for (BookInputDto book : books) {
+        for (BookDataDto book : books) {
             jsonArray.put(toJson(book));
         }
         return jsonArray.toString();
 
     }
 
-    private JSONObject toJson(BookInputDto books) throws JSONException {
+    private JSONObject toJson(BookDataDto books) throws JSONException {
         var json = new JSONObject();
         json.put("isbn", books.isbn());
         json.put("title", books.title());
