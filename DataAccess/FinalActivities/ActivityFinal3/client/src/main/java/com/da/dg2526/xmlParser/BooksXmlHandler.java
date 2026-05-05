@@ -8,10 +8,11 @@ import org.xml.sax.helpers.DefaultHandler;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MyXmlContactsHandler extends DefaultHandler {
+@SuppressWarnings("FieldCanBeLocal")
+public class BooksXmlHandler extends DefaultHandler {
 
 
-    private final List<BookXmlDto> books = new ArrayList<BookXmlDto>();
+    private final List<BookXmlDto> books = new ArrayList<>();
     private final StringBuilder text = new StringBuilder();
 
 

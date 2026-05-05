@@ -19,7 +19,7 @@ public class BookXmlParser extends DefaultHandler {
 
     public static List<BookXmlDto> parseSAX(Path filePath) throws ParserConfigurationException, SAXException, IOException {
         var saxParser = SAXParserFactory.newInstance().newSAXParser();
-        var handler = new MyXmlContactsHandler();
+        var handler = new BooksXmlHandler();
 
         saxParser.parse(filePath.toString(), handler);
 
